@@ -16,7 +16,7 @@ jobs:
 
       - id: get-sha
         run: |
-          echo ::set-output name=sha::$( curl -u "u:${{secrets.ACCESS_TOKEN}}" https://api.github.com/repos/${{env.REPOSITORY}}/git/ref/heads/${{ github.event.inputs.branch }} | jq .object.sha | tr -d '"' )
+          echo ::set-output name=sha::$( curl -u "u:${{secrets.ACCESS_TOKEN}}" https://api.github.com/repos/seol-gang/k8s_study_app/git/ref/heads/${{ github.event.inputs.branch }} | jq .object.sha | tr -d '"' )
       
       - name: Prepare
         id: prep
@@ -67,7 +67,7 @@ jobs:
         working-directory: test-app-kube
         run: |
           # 한번에 바꾸면 부분적으로만 바뀌는 현상이 있음
-          yq eval 'image="${{ needs.build.outputs.BUILD_IMAGE }}"' ./test-app/values.yaml > ./test-app/temp.yaml
+          yq eval '.image="${{ needs.build.outputs.BUILD_IMAGE }}"' ./test-app/values.yaml > ./test-app/temp.yaml
           cat ./test-app/temp.yaml > ./test-app/values.yaml
           ls ./test-app/temp.yaml && rm -rf ./test-app/temp.yaml
           git add ./test-app/values.yaml
