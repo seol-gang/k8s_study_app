@@ -9,6 +9,9 @@ jobs:
   build:
     name: build
     runs-on: ubuntu-latest
+    outputs:
+      tagged_image: ${{ steps.prep.outputs.tagged_image }}
+      tag: ${{ steps.prep.outputs.tag }}
     steps:
       - name: Checkout
         id: checkout
@@ -16,7 +19,7 @@ jobs:
 
       - id: get-sha
         run: |
-          echo ::set-output name=sha::$( curl -u "u:${{secrets.ACCESS_TOKEN}}" https://api.github.com/repos/seol-gang/k8s_study_app/git/ref/heads/${{ github.event.inputs.branch }} | jq .object.sha | tr -d '"' )
+          echo ::set-output name=sha::$( curl -u "u:${{secrets.ACCESS_TOKEN}}" https://api.github.com/repos/seol-gang/k8s_study_app/git/ref/heads/master | jq .object.sha | tr -d '"' )
       
       - name: Prepare
         id: prep
@@ -65,7 +68,7 @@ jobs:
         working-directory: test-app-kube
         run: |
           # 한번에 바꾸면 부분적으로만 바뀌는 현상이 있음
-          yq eval '.image="${{ needs.build.steps.prep.outputs.tagged_image }}:{{ needs.build.steps.prep.outputs.tag }}"' ./test-app/values.yaml > ./test-app/temp.yaml
+          yq eval '.image="${{ needs.build.outputs.tagged_image }}:${{ needs.build.outputs.tag }}"' ./test-app/values.yaml > ./test-app/temp.yaml
           cat ./test-app/temp.yaml > ./test-app/values.yaml
           ls ./test-app/temp.yaml && rm -rf ./test-app/temp.yaml
           git add ./test-app/values.yaml
