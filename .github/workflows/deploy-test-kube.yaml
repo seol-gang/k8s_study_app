@@ -49,7 +49,7 @@ jobs:
           push: true
           tags: | 
             ghcr.io/${{ github.repository_owner }}/test-app:latest
-            ghcr.io/${{ github.repository_owner }}/test-app:${{ steps.get-sha.outputs.sha }}
+            ghcr.io/${{ github.repository_owner }}/test-app:${{ steps.prep.outputs.tag }}
 
   deploy:
     name: deploy test api to k8s
