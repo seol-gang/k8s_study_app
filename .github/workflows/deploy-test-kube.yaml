@@ -47,8 +47,6 @@ jobs:
           tags: | 
             ghcr.io/${{ github.repository_owner }}/test-app:latest
             ghcr.io/${{ github.repository_owner }}/test-app:${{ steps.get-sha.outputs.sha }}
-    outputs:
-      BUILD_IMAGE: ${{ steps.prep.outputs.tagged_image }}:${{ steps.prep.outputs.tag }}
 
   deploy:
     name: deploy test api to k8s
@@ -67,7 +65,7 @@ jobs:
         working-directory: test-app-kube
         run: |
           # 한번에 바꾸면 부분적으로만 바뀌는 현상이 있음
-          yq eval '.image="${{ needs.build.outputs.BUILD_IMAGE }}"' ./test-app/values.yaml > ./test-app/temp.yaml
+          yq eval '.image="${{ needs.build.steps.prep.outputs.tagged_image }}:{{ needs.build.steps.prep.outputs.tag }}"' ./test-app/values.yaml > ./test-app/temp.yaml
           cat ./test-app/temp.yaml > ./test-app/values.yaml
           ls ./test-app/temp.yaml && rm -rf ./test-app/temp.yaml
           git add ./test-app/values.yaml
