@@ -17,6 +17,14 @@ jobs:
       - id: get-sha
         run: |
           echo ::set-output name=sha::$( curl -u "u:${{secrets.ACCESS_TOKEN}}" https://api.github.com/repos/${{env.REPOSITORY}}/git/ref/heads/${{ github.event.inputs.branch }} | jq .object.sha | tr -d '"' )
+      
+      - name: Prepare
+        id: prep
+        run: |
+          TAG=$(echo ${{ steps.get-sha.outputs.sha }} | head -c7)
+          IMAGE_PATH="ghcr.io/seol-gang/test-app"
+          echo ::set-output name=tagged_image::${IMAGE_PATH}
+          echo ::set-output name=tag::${TAG}
 
       - name: login to ghcr
         uses: docker/login-action@v2
@@ -39,5 +47,32 @@ jobs:
           tags: | 
             ghcr.io/${{ github.repository_owner }}/test-app:latest
             ghcr.io/${{ github.repository_owner }}/test-app:${{ steps.get-sha.outputs.sha }}
+    outputs:
+      BUILD_IMAGE: ${{ steps.prep.outputs.tagged_image }}:${{ steps.prep.outputs.tag }}
 
+  deploy:
+    name: deploy test api to k8s
+    needs: [build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        id: checkout
+        uses: actions/checkout@v2
+        with:
+          repository: "seol-gang/k8s_study"
+          ref: "master"
+          token: "${{ secrets.ACCESS_TOKEN }}"
 
+      - name: change values
+        working-directory: test-app-kube/test-app
+        run: |
+          # 한번에 바꾸면 부분적으로만 바뀌는 현상이 있음
+          yq eval 'image="${{ env.BUILD_IMAGE }}"' ./test-app/values.yaml > ./test-app/temp.yaml
+          cat ./test-app/temp.yaml > ./test-app/values.yaml
+          ls ./test-app/temp.yaml && rm -rf ./test-app/temp.yaml
+          git add ./test-app/values.yaml
+
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+          git commit -m "update test-app image"
+          git push origin master
